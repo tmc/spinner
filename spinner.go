@@ -224,3 +224,19 @@ func ColorPulse(start, end int, duration time.Duration) func() string {
 		return Color256(color)
 	}
 }
+
+func SpeedupInterval(start, end, duration time.Duration) func() time.Duration {
+	var t time.Time
+	return func() time.Duration {
+		if t.IsZero() {
+			t = time.Now()
+		}
+		x := time.Since(t).Microseconds()
+		y := duration.Microseconds()
+		if x > y {
+			return end
+		}
+		progress := float64(x) / float64(y)
+		return time.Duration(float64(start.Nanoseconds())*(1-progress) + float64(end.Nanoseconds())*progress)
+	}
+}
