@@ -18,6 +18,7 @@ type Spinner struct {
 	interval   func() time.Duration
 	color      func() string
 	hideCursor bool
+	position   int
 }
 
 type Option func(*Spinner)
@@ -65,6 +66,11 @@ func WithHideCursor(hide bool) func(*Spinner) {
 		s.hideCursor = hide
 	}
 }
+func WithPosition(pos int) Option {
+	return func(s *Spinner) {
+		s.position = pos
+	}
+}
 
 var defaultFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
@@ -81,15 +87,13 @@ func New(opts ...Option) *Spinner {
 		interval:   func() time.Duration { return 60 * time.Millisecond },
 		color:      func() string { return White },
 		hideCursor: true,
+		position:   0,
 	}
-
 	for _, opt := range opts {
 		opt(s)
 	}
-
 	return s
 }
-
 func (s *Spinner) Start() {
 	s.mu.Lock()
 	if s.active {
@@ -101,7 +105,6 @@ func (s *Spinner) Start() {
 		fmt.Fprint(s.writer, hideCursorSeq)
 	}
 	s.mu.Unlock()
-
 	go func() {
 		for {
 			select {
@@ -109,7 +112,11 @@ func (s *Spinner) Start() {
 				return
 			default:
 				s.mu.Lock()
-				fmt.Fprintf(s.writer, "\r%s%s%s", s.color(), s.frames[s.index], Reset)
+				if s.position > 0 {
+					fmt.Fprintf(s.writer, "\033[%dG%s%s%s\033[%dG", s.position, s.color(), s.frames[s.index], Reset, s.position)
+				} else {
+					fmt.Fprintf(s.writer, "\r%s%s%s", s.color(), s.frames[s.index], Reset)
+				}
 				s.index = (s.index + 1) % len(s.frames)
 				s.mu.Unlock()
 				time.Sleep(s.interval())
@@ -117,14 +124,17 @@ func (s *Spinner) Start() {
 		}
 	}()
 }
-
 func (s *Spinner) Stop() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.active {
 		s.active = false
 		s.stop <- struct{}{}
-		fmt.Fprint(s.writer, "\r \r")
+		if s.position > 0 {
+			fmt.Fprintf(s.writer, "\033[%dG \033[%dG", s.position, s.position)
+		} else {
+			fmt.Fprint(s.writer, "\r \r")
+		}
 		if s.hideCursor {
 			fmt.Fprint(s.writer, showCursorSeq)
 		}
