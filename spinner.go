@@ -1,3 +1,4 @@
+// Package spinner provides a customizable terminal spinner for displaying progress or activity.
 package spinner
 
 import (
@@ -8,6 +9,7 @@ import (
 	"time"
 )
 
+// Spinner represents a terminal spinner.
 type Spinner struct {
 	mu         sync.Mutex
 	frames     []string
@@ -19,16 +21,21 @@ type Spinner struct {
 	color      func() string
 	hideCursor bool
 	position   int
+	prefix     string
+	suffix     string
 }
 
+// Option is a function that configures a Spinner.
 type Option func(*Spinner)
 
+// WithWriter sets the writer for the spinner.
 func WithWriter(w io.Writer) Option {
 	return func(s *Spinner) {
 		s.writer = w
 	}
 }
 
+// WithInterval sets a fixed interval for the spinner.
 func WithInterval(d time.Duration) Option {
 	return func(s *Spinner) {
 		s.interval = func() time.Duration {
@@ -37,48 +44,63 @@ func WithInterval(d time.Duration) Option {
 	}
 }
 
+// WithFrames sets the frames for the spinner.
 func WithFrames(frames []string) Option {
 	return func(s *Spinner) {
 		s.frames = frames
 	}
 }
 
+// WithIntervalFunc sets a function to determine the interval for the spinner.
 func WithIntervalFunc(f func() time.Duration) func(*Spinner) {
 	return func(s *Spinner) {
 		s.interval = f
 	}
 }
 
+// WithColor sets a fixed color for the spinner.
 func WithColor(color string) func(*Spinner) {
 	return func(s *Spinner) {
 		s.color = func() string { return color }
 	}
 }
 
+// WithColorFunc sets a function to determine the color for the spinner.
 func WithColorFunc(f func() string) func(*Spinner) {
 	return func(s *Spinner) {
 		s.color = f
 	}
 }
 
+// WithHideCursor sets whether to hide the cursor while the spinner is active.
 func WithHideCursor(hide bool) func(*Spinner) {
 	return func(s *Spinner) {
 		s.hideCursor = hide
 	}
 }
+
+// WithPosition sets the position of the spinner.
 func WithPosition(pos int) Option {
 	return func(s *Spinner) {
 		s.position = pos
 	}
 }
 
-var defaultFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+// WithPrefix sets a prefix for the spinner.
+func WithPrefix(prefix string) Option {
+	return func(s *Spinner) {
+		s.prefix = prefix
+	}
+}
 
-const (
-	hideCursorSeq = "\033[?25l"
-	showCursorSeq = "\033[?25h"
-)
+// WithSuffix sets a suffix for the spinner.
+func WithSuffix(suffix string) Option {
+	return func(s *Spinner) {
+		s.suffix = suffix
+	}
+}
 
+// New creates a new Spinner with the given options.
 func New(opts ...Option) *Spinner {
 	s := &Spinner{
 		frames:     defaultFrames,
@@ -94,6 +116,8 @@ func New(opts ...Option) *Spinner {
 	}
 	return s
 }
+
+// Start begins the spinner animation.
 func (s *Spinner) Start() {
 	s.mu.Lock()
 	if s.active {
@@ -113,9 +137,9 @@ func (s *Spinner) Start() {
 			default:
 				s.mu.Lock()
 				if s.position > 0 {
-					fmt.Fprintf(s.writer, "\033[%dG%s%s%s\033[%dG", s.position, s.color(), s.frames[s.index], Reset, s.position)
+					fmt.Fprintf(s.writer, "\033[%dG%s%s%s%s%s\033[%dG", s.position, s.prefix, s.color(), s.frames[s.index], Reset, s.suffix, s.position)
 				} else {
-					fmt.Fprintf(s.writer, "\r%s%s%s", s.color(), s.frames[s.index], Reset)
+					fmt.Fprintf(s.writer, "\r%s%s%s%s%s", s.prefix, s.color(), s.frames[s.index], Reset, s.suffix)
 				}
 				s.index = (s.index + 1) % len(s.frames)
 				s.mu.Unlock()
@@ -124,6 +148,8 @@ func (s *Spinner) Start() {
 		}
 	}()
 }
+
+// Stop halts the spinner animation.
 func (s *Spinner) Stop() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -141,12 +167,20 @@ func (s *Spinner) Stop() {
 	}
 }
 
+// Color256 returns the ANSI escape sequence for a 256-color.
 func Color256(n int) string {
 	if n < 0 || n > 255 {
 		return ""
 	}
 	return fmt.Sprintf("\033[38;5;%dm", n)
 }
+
+var defaultFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+const (
+	hideCursorSeq = "\033[?25l"
+	showCursorSeq = "\033[?25h"
+)
 
 const (
 	Black  = "\033[38;5;0m"

@@ -1,1 +1,35 @@
-spinner is a go package for showing terminal spinners
+# Spinner
+
+Spinner is a flexible and customizable terminal spinner package for Go.
+
+## Features
+
+- Multiple pre-defined spinner styles
+- Customizable frames, colors, and intervals
+- Support for fixed and dynamic colors
+- Adjustable speed and position
+- Prefix and suffix text support
+- Easy to use API
+
+## Installation
+
+```bash
+go get github.com/tmc/spinner
+```
+
+## Quick Start
+
+```go
+package main
+
+import (
+    "time"
+    "github.com/tmc/spinner"
+)
+
+func main() {
+    s := spinner.New()
+    s.Start()
+    time.Sleep(3 * time.Second)
+    s.Stop()
+}

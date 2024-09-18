@@ -61,3 +61,22 @@ func ExampleSpinner_withAdvancedOptions() {
 	s.Stop()
 	// output:
 }
+
+func ExampleSpinner_withPrefixOptions() {
+	prefixes := []string{
+		"🚀 ",
+		"\033[31mError:\033[0m ",
+		"Loading: ",
+	}
+	for _, prefix := range prefixes {
+		s := spinner.New(
+			spinner.WithPrefix(prefix),
+			spinner.WithFrames([]string{"▁", "▂", "▃"}),
+			spinner.WithInterval(20*time.Millisecond),
+		)
+		s.Start()
+		time.Sleep(900 * time.Millisecond)
+		s.Stop()
+	}
+	// Output:
+}
